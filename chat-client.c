@@ -4,6 +4,8 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
 
 #define BUFFER_SIZE 4096
 #define TRUE 1
@@ -11,23 +13,25 @@
 
 int open_socket(char *host_name, int port) {
 	int client_socket;
-	struct hostent *host;
+	// struct hostent *host;
 	struct sockaddr_in server_addr;
+	int conversion_status;
 	int connection_status;
 
 	client_socket = socket(AF_INET, SOCK_STREAM, 0);
-	if (client_socket == -1)
-	{
+	if(client_socket == -1) {
 		fprintf(stderr, "socket: Error\n");
 		exit(-1);
 	}
-	host = gethostbyname(host_name);
-	if (!host)
-	{
-		fprintf(stderr, "gethostbyname: Error\n");
+	// host = gethostbyname(host_name);
+	// if(!host) {
+	// 	fprintf(stderr, "gethostbyname: Error\n");
+	// }
+	conversion_status = inet_pton(AF_INET, host_name, &server_addr.sin_addr);
+	if(!conversion_status) {
+		fprintf(stderr, "inet_pton: Error\n");
 		exit(-1);
 	}
-	server_addr.sin_addr.s_addr = INADDR_ANY;
 	server_addr.sin_family = AF_INET;
 	server_addr.sin_port = htons(port);
 
@@ -55,10 +59,6 @@ void use_socket(int socket_fd) {
 	}
 }
 
-void close_socket(int socket_fd) {
-	close(socket_fd);
-}
-
 int main(int argc, char *argv[]) {
 	int port;
 	int client_socket;
@@ -70,6 +70,6 @@ int main(int argc, char *argv[]) {
 	port = strtol(argv[2], NULL, 10);
 	client_socket = open_socket(argv[1], port);
 	use_socket(client_socket);
-	close_socket(client_socket);
+	close(client_socket);
 	return 0;
 }
