@@ -11,11 +11,14 @@
 #define BUFFER_SIZE 1024
 
 
-int broadcast_message(int *client_sockets, char *msg) {
+/*sends message for every available client except for except_id
+	except_id = 0 for no exceptions
+*/
+int broadcast_message(int *client_sockets, char *msg, int except_fd) {
 	int i, client_fd;
 	for(i = 0; i < MAX_CLIENTS; i++) {
 		client_fd = client_sockets[i];
-		if(client_fd > 0)
+		if(client_fd > 0 && client_fd != except_fd)
 			send(client_fd, msg, strlen(msg), 0);
 	}
 	return 1;
@@ -74,7 +77,7 @@ int main(int argc, char **argv) {
 					break;
 				}
 			}
-			broadcast_message(client_sockets, joined_msg);
+			broadcast_message(client_sockets, joined_msg, 0);
 		}
 
 		for(i = 0; i < MAX_CLIENTS; i++) {
@@ -93,7 +96,7 @@ int main(int argc, char **argv) {
 					printf("%s", left_msg);
 					close(client_fd);
 					client_sockets[i] = 0;
-					broadcast_message(client_sockets, left_msg);
+					broadcast_message(client_sockets, left_msg, 0);
 				}
 					/*received a normal user message*/
 				else {
@@ -103,7 +106,7 @@ int main(int argc, char **argv) {
 					snprintf(usr_msg, sizeof(usr_msg), "%s:%d %s", \
 						inet_ntoa(serverSocket.sin_addr), ntohs(serverSocket.sin_port), buffer);
 					printf("%s", usr_msg);
-					broadcast_message(client_sockets, usr_msg);
+					broadcast_message(client_sockets, usr_msg, client_fd);
 				}
 			}
 		}
