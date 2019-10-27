@@ -13,7 +13,7 @@
 
 int open_socket(char *host_name, int port) {
 	int client_socket;
-	// struct hostent *host;
+	/* struct hostent *host; */
 	struct sockaddr_in server_addr;
 	int conversion_status;
 	int connection_status;
@@ -23,10 +23,10 @@ int open_socket(char *host_name, int port) {
 		fprintf(stderr, "socket: Error\n");
 		exit(-1);
 	}
-	// host = gethostbyname(host_name);
-	// if(!host) {
-	// 	fprintf(stderr, "gethostbyname: Error\n");
-	// }
+	/* host = gethostbyname(host_name);
+	if(!host) {
+		fprintf(stderr, "gethostbyname: Error\n");
+	} */
 	conversion_status = inet_pton(AF_INET, host_name, &server_addr.sin_addr);
 	if(!conversion_status) {
 		fprintf(stderr, "inet_pton: Error\n");
@@ -50,9 +50,9 @@ int open_socket(char *host_name, int port) {
 void use_socket(int socket_fd) {
 	char message[BUFFER_SIZE];
 	char server_response[BUFFER_SIZE];
-	
+		
 	while(TRUE) {
-		fgets("%s", BUFFER_SIZE, stdin);
+		fgets(message, BUFFER_SIZE, stdin);
 		send(socket_fd, message, strlen(message), 0);
 		recv(socket_fd, &server_response, BUFFER_SIZE, 0);
 		printf("%s", server_response);
