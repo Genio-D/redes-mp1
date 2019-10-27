@@ -6,6 +6,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <sys/select.h>
 
 #define BUFFER_SIZE 4096
 #define TRUE 1
@@ -50,12 +51,24 @@ int open_socket(char *host_name, int port) {
 void use_socket(int socket_fd) {
 	char message[BUFFER_SIZE];
 	char server_response[BUFFER_SIZE];
-		
+	fd_set fd_mask;
+	int stdin_fd = fileno(stdin);
+
 	while(TRUE) {
-		fgets(message, BUFFER_SIZE, stdin);
-		send(socket_fd, message, strlen(message), 0);
-		recv(socket_fd, &server_response, BUFFER_SIZE, 0);
-		printf("%s", server_response);
+		FD_ZERO(&fd_mask);
+		FD_SET(stdin_fd, &fd_mask);
+		FD_SET(socket_fd, &fd_mask);
+
+		select(socket_fd + 1, &fd_mask, NULL, NULL, NULL);
+
+		if(FD_ISSET(socket_fd, &fd_mask)) {
+			recv(socket_fd, &server_response, BUFFER_SIZE, 0);
+			printf("%s", server_response);
+		}
+		if(FD_ISSET(stdin_fd, &fd_mask)) {
+			fgets(message, BUFFER_SIZE, stdin);
+			send(socket_fd, message, strlen(message), 0);
+		}
 	}
 }
 
