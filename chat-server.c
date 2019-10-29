@@ -7,14 +7,16 @@
 #include <signal.h>
 #include <arpa/inet.h>
 
-#define MAX_CLIENTS 42
-#define BUFFER_SIZE 1024
+#define MAX_CLIENTS 1000
+#define BUFFER_SIZE 4096
+#define LISTEN_MAX 10
 
+int client_sockets[MAX_CLIENTS];
 
 /*sends message for every available client except for except_id
 	except_id = 0 for no exceptions
 */
-int broadcast_message(int *client_sockets, char *msg, int except_fd) {
+int broadcast_message(char *msg, int except_fd) {
 	int i, client_fd;
 	for(i = 0; i < MAX_CLIENTS; i++) {
 		client_fd = client_sockets[i];
@@ -22,6 +24,16 @@ int broadcast_message(int *client_sockets, char *msg, int except_fd) {
 			send(client_fd, msg, strlen(msg), 0);
 	}
 	return 1;
+}
+
+void signal_handler(int t) {
+	int i, client_fd;
+	for(i = 0; i < MAX_CLIENTS; i++) {
+		client_fd = client_sockets[i];
+		if(client_fd > 0)
+			close(client_fd);
+	}
+	exit(0);
 }
 
 
@@ -36,12 +48,21 @@ int main(int argc, char **argv) {
 	int max_fd;
 	int client_fd;
 	FD_ZERO(&readfds);
-	int listener_fd = socket(AF_INET, SOCK_STREAM, 0);
-	bind(listener_fd, (struct sockaddr *)&serverSocket, sizeof(serverSocket));
-	listen(listener_fd, 5);
+	int listener_fd;
+	if((listener_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+		exit(-1);
+	if(bind(listener_fd, (struct sockaddr *)&serverSocket, sizeof(serverSocket)) < 0)
+		exit(-1);
+	if(listen(listener_fd, LISTEN_MAX) < 0)
+		exit(-1);
 	int serverSocketSize =  sizeof(serverSocket); 
+	struct sigaction sigact;
+	sigact.sa_handler = signal_handler;
+	sigaction(SIGINT, &sigact, NULL);
 	int i;
-	int client_sockets[MAX_CLIENTS];
+
+	if(argc > 2)
+		exit(-1);
 
 	for(i = 0; i < MAX_CLIENTS; i++) {
 		client_sockets[i] = 0;
@@ -77,7 +98,7 @@ int main(int argc, char **argv) {
 					break;
 				}
 			}
-			broadcast_message(client_sockets, joined_msg, 0);
+			broadcast_message(joined_msg, 0);
 		}
 
 		for(i = 0; i < MAX_CLIENTS; i++) {
@@ -96,7 +117,7 @@ int main(int argc, char **argv) {
 					printf("%s", left_msg);
 					close(client_fd);
 					client_sockets[i] = 0;
-					broadcast_message(client_sockets, left_msg, 0);
+					broadcast_message(left_msg, 0);
 				}
 					/*received a normal user message*/
 				else {
@@ -106,7 +127,7 @@ int main(int argc, char **argv) {
 					snprintf(usr_msg, sizeof(usr_msg), "%s:%d %s", \
 						inet_ntoa(serverSocket.sin_addr), ntohs(serverSocket.sin_port), buffer);
 					printf("%s", usr_msg);
-					broadcast_message(client_sockets, usr_msg, client_fd);
+					broadcast_message(usr_msg, client_fd);
 				}
 			}
 		}

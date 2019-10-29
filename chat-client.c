@@ -70,11 +70,15 @@ void use_socket(int socket_fd) {
 
 		if(FD_ISSET(socket_fd, &fd_mask)) {
 			int len = recv(socket_fd, &server_response, BUFFER_SIZE, 0);
+			if(len == 0)
+				break;
 			server_response[len] = '\0';
 			printf("%s", server_response);
 		}
 		if(FD_ISSET(stdin_fd, &fd_mask)) {
 			char *ret = fgets(message, BUFFER_SIZE, stdin);
+			if(ret == NULL)
+				break;
 			send(socket_fd, ret, strlen(ret), 0);
 		}
 	}
@@ -92,5 +96,5 @@ int main(int argc, char *argv[]) {
 	client_socket = open_socket(argv[1], port);
 	use_socket(client_socket);
 	close(client_socket);
-	return 0;
+	exit(0);
 }
